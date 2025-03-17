@@ -14,6 +14,10 @@ export default function Home() {
   const [rejected, setRejected] = useState<number[]>([]);
   const [genderFilter, setGenderFilter] = useState('all');
   const [showFavorites, setShowFavorites] = useState(false);
+  const [lastAction, setLastAction] = useState<'like' | 'dislike' | null>(null);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [pendingName, setPendingName] = useState<(typeof babyNames)[0] | null>(null);
+  const [pendingDirection, setPendingDirection] = useState<string | null>(null);
 
   // Filtrar nombres por género
   const filteredNames = useMemo(() => {
@@ -28,22 +32,47 @@ export default function Home() {
     return filteredNames.filter(name => !seenIds.includes(name.id));
   }, [filteredNames, favorites, rejected]);
 
+  // Efecto para procesar la acción pendiente después de que la animación termine
+  useEffect(() => {
+    if (!showAnimation && pendingName && pendingDirection) {
+      // La animación ha terminado, ahora actualiza los estados reales
+      if (pendingDirection === 'right') {
+        setFavorites(prev => [...prev, pendingName]);
+      } else {
+        setRejected(prev => [...prev, pendingName.id]);
+      }
+
+      // Avanzar al siguiente nombre
+      setCurrentIndex(prevIndex => 
+        prevIndex < remainingNames.length - 1 ? prevIndex + 1 : prevIndex
+      );
+
+      // Limpiar el estado pendiente
+      setPendingName(null);
+      setPendingDirection(null);
+    }
+  }, [showAnimation, pendingName, pendingDirection, remainingNames]);
+
   // Manejar el deslizamiento de tarjetas
   const handleSwipe = (direction: string) => {
     const currentName = remainingNames[currentIndex];
     
+    // Guardar la acción pendiente para procesarla después de la animación
+    setPendingName(currentName);
+    setPendingDirection(direction);
+    
+    // Establecer la acción para la animación
     if (direction === 'right') {
-      // Me gusta - añadir a favoritos
-      setFavorites(prev => [...prev, currentName]);
+      setLastAction('like');
     } else {
-      // No me gusta - añadir a rechazados
-      setRejected(prev => [...prev, currentName.id]);
+      setLastAction('dislike');
     }
     
-    // Avanzar al siguiente nombre
-    setCurrentIndex(prevIndex => 
-      prevIndex < remainingNames.length - 1 ? prevIndex + 1 : prevIndex
-    );
+    // Mostrar animación
+    setShowAnimation(true);
+    setTimeout(() => {
+      setShowAnimation(false);
+    }, 800);
   };
 
   // Eliminar un nombre de favoritos
@@ -56,6 +85,8 @@ export default function Home() {
     setFavorites([]);
     setRejected([]);
     setCurrentIndex(0);
+    setPendingName(null);
+    setPendingDirection(null);
   };
 
   // Cambiar entre vista de tarjetas y favoritos
@@ -89,6 +120,25 @@ export default function Home() {
 
             <div className="flex flex-col items-center">
               <div className="relative w-72 h-96 mb-8">
+                {/* Animación de like/dislike */}
+                {showAnimation && (
+                  <div className="absolute inset-0 flex items-center justify-center z-20">
+                    {lastAction === 'like' ? (
+                      <div className="text-green-500 text-9xl animate-ping opacity-70">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-36 w-36" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="text-red-500 text-9xl animate-ping opacity-70">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-36 w-36" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {remainingNames.length > currentIndex ? (
                   <BabyCard
                     name={remainingNames[currentIndex].name}
@@ -112,33 +162,12 @@ export default function Home() {
                 )}
               </div>
 
-              {remainingNames.length > currentIndex && (
-                <div className="flex space-x-8">
-                  <button
-                    onClick={() => handleSwipe('left')}
-                    className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-50"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleSwipe('right')}
-                    className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-green-50"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-8">
-              <p className="text-center text-gray-600">
-                Has guardado {favorites.length} {favorites.length === 1 ? 'nombre' : 'nombres'} y 
-                rechazado {rejected.length} {rejected.length === 1 ? 'nombre' : 'nombres'}.
-              </p>
+              <div className="mt-8">
+                <p className="text-center text-gray-600">
+                  Has guardado {favorites.length} {favorites.length === 1 ? 'nombre' : 'nombres'} y 
+                  rechazado {rejected.length} {rejected.length === 1 ? 'nombre' : 'nombres'}.
+                </p>
+              </div>
             </div>
           </div>
         ) : (
