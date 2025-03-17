@@ -1,43 +1,34 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
 import BabyCard from '../components/BabyCard';
 import FavoritesList from '../components/FavoritesList';
-import NameFilters from '../components/NameFilters';
 import NameStats from '../components/NameStats';
-import { babyNames } from '../data/babyNames';
+import { nombresArgentinos } from '../data/nombresArgentinos';
+import { NombreArgentino } from '../types/types';
 
 export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [favorites, setFavorites] = useState<typeof babyNames>([]);
+  const [favorites, setFavorites] = useState<NombreArgentino[]>([]);
   const [rejected, setRejected] = useState<number[]>([]);
-  const [genderFilter, setGenderFilter] = useState('all');
   const [showFavorites, setShowFavorites] = useState(false);
   const [lastAction, setLastAction] = useState<'like' | 'dislike' | null>(null);
   const [showAnimation, setShowAnimation] = useState(false);
-  const [pendingName, setPendingName] = useState<(typeof babyNames)[0] | null>(null);
+  const [pendingName, setPendingName] = useState<NombreArgentino | null>(null);
   const [pendingDirection, setPendingDirection] = useState<string | null>(null);
-
-  // Filtrar nombres por género
-  const filteredNames = useMemo(() => {
-    return babyNames.filter(name => 
-      genderFilter === 'all' || name.gender === genderFilter
-    );
-  }, [genderFilter]);
 
   // Nombres que aún no se han visto
   const remainingNames = useMemo(() => {
     const seenIds = [...favorites.map(f => f.id), ...rejected];
-    return filteredNames.filter(name => !seenIds.includes(name.id));
-  }, [filteredNames, favorites, rejected]);
+    return nombresArgentinos.filter(name => !seenIds.includes(name.id));
+  }, [favorites, rejected]);
 
   // Efecto para procesar la acción pendiente después de que la animación termine
   useEffect(() => {
     if (!showAnimation && pendingName && pendingDirection) {
       // La animación ha terminado, ahora actualiza los estados reales
       if (pendingDirection === 'right') {
-        setFavorites(prev => [...prev, pendingName]);
+        setFavorites(prev => [...prev, pendingName as NombreArgentino]);
       } else {
         setRejected(prev => [...prev, pendingName.id]);
       }
@@ -111,13 +102,6 @@ export default function Home() {
       <main className="container mx-auto p-4 max-w-4xl">
         {!showFavorites ? (
           <div>
-            <div className="mb-6">
-              <NameFilters 
-                genderFilter={genderFilter} 
-                setGenderFilter={setGenderFilter} 
-              />
-            </div>
-
             <div className="flex flex-col items-center">
               <div className="relative w-72 h-96 mb-8">
                 {/* Animación de like/dislike */}
@@ -141,10 +125,9 @@ export default function Home() {
                 
                 {remainingNames.length > currentIndex ? (
                   <BabyCard
-                    name={remainingNames[currentIndex].name}
-                    gender={remainingNames[currentIndex].gender}
-                    origin={remainingNames[currentIndex].origin}
-                    meaning={remainingNames[currentIndex].meaning}
+                    nombre={remainingNames[currentIndex].nombre}
+                    cantidad={remainingNames[currentIndex].cantidad}
+                    anio={remainingNames[currentIndex].anio}
                     onSwipe={handleSwipe}
                   />
                 ) : (
