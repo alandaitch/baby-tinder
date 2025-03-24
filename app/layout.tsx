@@ -1,23 +1,32 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
+import Header from "@/components/Header";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Baby Tinder - Encuentra el nombre perfecto para tu bebé",
-  description: "Aplicación para encontrar el nombre perfecto para tu bebé deslizando tarjetas como en Tinder",
+  title: "Baby Tinder",
+  description: "Find the perfect name for your baby",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="es">
       <body className={inter.className}>
-        {children}
+        <AuthProvider>
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+              {children}
+            </main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -85,21 +85,20 @@ export default function Home() {
     setShowFavorites(prev => !prev);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-pink-50">
-      <header className="p-4 bg-white shadow-sm">
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-pink-600">Baby Tinder</h1>
-          <button 
-            onClick={toggleView}
-            className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition"
-          >
-            {showFavorites ? 'Ver Tarjetas' : 'Ver Favoritos'}
-          </button>
-        </div>
-      </header>
+  useEffect(() => {
+    const handleToggleFavorites = (event: CustomEvent) => {
+      setShowFavorites(event.detail.showFavorites);
+    };
 
-      <main className="container mx-auto p-4 max-w-4xl">
+    window.addEventListener('toggleFavorites', handleToggleFavorites as EventListener);
+    return () => {
+      window.removeEventListener('toggleFavorites', handleToggleFavorites as EventListener);
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {!showFavorites ? (
           <div>
             <div className="flex flex-col items-center">
@@ -163,13 +162,7 @@ export default function Home() {
             </div>
           </div>
         )}
-      </main>
-
-      <footer className="p-4 bg-white mt-8 border-t">
-        <div className="container mx-auto text-center text-gray-600">
-          <p>Baby Tinder - Encuentra el nombre perfecto para tu bebé</p>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }
