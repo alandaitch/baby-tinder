@@ -17,6 +17,11 @@ interface UserPreferences {
   disliked: NombreArgentino[];
 }
 
+interface PreferenceItem {
+  nombre_id?: string | number;
+  id?: string | number;
+}
+
 const PartnerPreferencesCompare: React.FC<PreferencesCompareProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -226,7 +231,7 @@ const PartnerPreferencesCompare: React.FC<PreferencesCompareProps> = ({ user }) 
       if (likedError) throw likedError;
 
       // IMPORTANTE: Manejar nombre_id que pueden ser numbers o UUIDs
-      const likedIds = likedData?.map(item => {
+      const likedIds = likedData?.map((item: PreferenceItem) => {
         if (item.nombre_id !== undefined) return item.nombre_id;
         if (item.id !== undefined) return item.id;
         return null;
@@ -264,7 +269,7 @@ const PartnerPreferencesCompare: React.FC<PreferencesCompareProps> = ({ user }) 
       if (dislikedError) throw dislikedError;
 
       // IMPORTANTE: Manejar nombre_id que pueden ser numbers o UUIDs
-      const dislikedIds = dislikedData?.map(item => {
+      const dislikedIds = dislikedData?.map((item: PreferenceItem) => {
         if (item.nombre_id !== undefined) return item.nombre_id;
         if (item.id !== undefined) return item.id;
         return null;
