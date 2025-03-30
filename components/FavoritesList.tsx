@@ -1,15 +1,9 @@
 import React from 'react';
 import { FiX } from 'react-icons/fi';
-
-interface BabyName {
-  id: number;
-  nombre: string;
-  cantidad: number;
-  anio: number;
-}
+import { NombreArgentino } from '@/types/types';
 
 interface FavoritesListProps {
-  favorites: BabyName[];
+  favorites: NombreArgentino[];
   onRemove: (id: number) => void;
 }
 
@@ -19,7 +13,10 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ favorites, onRemove }) =>
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Nombres Favoritos</h2>
       
       {favorites.length === 0 ? (
-        <p className="text-gray-600">Aún no has guardado ningún nombre favorito.</p>
+        <div className="py-8 text-center">
+          <p className="text-gray-600 mb-3">Aún no has guardado ningún nombre favorito.</p>
+          <p className="text-sm text-gray-500">Desliza a la derecha o haz clic en el corazón para guardar nombres que te gusten.</p>
+        </div>
       ) : (
         <ul className="space-y-2">
           {favorites.map((baby) => (
@@ -34,6 +31,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ favorites, onRemove }) =>
               <button 
                 onClick={() => onRemove(baby.id)}
                 className="p-1 text-red-500 hover:text-red-700 transition"
+                aria-label={`Eliminar ${baby.nombre}`}
               >
                 <FiX size={18} />
               </button>

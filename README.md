@@ -1,3 +1,56 @@
+# Baby Tinder
+
+Una aplicación para elegir nombres de bebés inspirada en la mecánica de Tinder. Desliza a la derecha para guardar un nombre que te gusta, o a la izquierda para descartarlo.
+
+## Características
+
+- **Interfaz tipo Tinder**: Desliza o haz clic en los botones para marcar nombres como favoritos o descartarlos.
+- **Autenticación de usuarios**: Inicia sesión para guardar tus preferencias de nombres.
+- **Persistencia de datos**: Todas tus preferencias se guardan en la base de datos.
+- **Coincidencias entre parejas**: Recibe notificaciones cuando tú y tu pareja coinciden en gustar el mismo nombre.
+- **Estadísticas de nombres**: Ve estadísticas sobre tus nombres favoritos.
+
+## Tecnologías utilizadas
+
+- **Frontend**: Next.js, React, TailwindCSS
+- **Backend**: Supabase para autenticación y base de datos
+- **Animaciones**: React Spring para deslizamientos suaves
+
+## Estructura de la base de datos
+
+- **profiles**: Información de los usuarios
+- **nombres**: Catálogo de nombres disponibles
+- **user_preferences**: Guarda si a un usuario le gusta o no un nombre
+- **user_favorites**: Lista de nombres favoritos de cada usuario
+- **couple_matches**: Registra cuando dos usuarios coinciden en gustar un nombre
+
+## Instalación
+
+1. Clona el repositorio
+2. Instala las dependencias con `npm install`
+3. Crea un archivo `.env.local` con tus credenciales de Supabase:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=tu-url-de-supabase
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-clave-anon-de-supabase
+   ```
+4. Ejecuta el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
+
+## Uso
+
+1. Inicia sesión con tu correo electrónico
+2. Explora los nombres deslizando a la derecha (me gusta) o a la izquierda (no me gusta)
+3. Revisa tu lista de nombres favoritos
+4. Si ambos miembros de la pareja utilizan la aplicación, recibirán notificaciones cuando coincidan en gustar un nombre
+
+## Próximas características
+
+- Filtrado de nombres por popularidad o año
+- Categorización de nombres por origen
+- Modo oscuro
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

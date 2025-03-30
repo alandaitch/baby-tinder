@@ -6,8 +6,13 @@ import FavoritesList from '../components/FavoritesList';
 import NameStats from '../components/NameStats';
 import { nombresArgentinos } from '../data/nombresArgentinos';
 import { NombreArgentino } from '../types/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveNamePreference, getLikedNames, getDislikedNames, removeNamePreference, checkForMatches } from '@/lib/nameService';
+import Link from 'next/link';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [favorites, setFavorites] = useState<NombreArgentino[]>([]);
   const [rejected, setRejected] = useState<number[]>([]);
@@ -16,6 +21,34 @@ export default function Home() {
   const [showAnimation, setShowAnimation] = useState(false);
   const [pendingName, setPendingName] = useState<NombreArgentino | null>(null);
   const [pendingDirection, setPendingDirection] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [matchAlert, setMatchAlert] = useState<string | null>(null);
+
+  // Cargar favoritos y rechazados desde Supabase cuando el usuario inicia sesión
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      if (!loading && user) {
+        setIsLoading(true);
+        try {
+          // Cargar los nombres favoritos
+          const likedNames = await getLikedNames(user);
+          setFavorites(likedNames);
+          
+          // Cargar los nombres rechazados
+          const dislikedIds = await getDislikedNames(user);
+          setRejected(dislikedIds);
+        } catch (error) {
+          console.error('Error loading user preferences:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (!loading) {
+        setIsLoading(false);
+      }
+    };
+    
+    loadUserPreferences();
+  }, [user, loading]);
 
   // Nombres que aún no se han visto
   const remainingNames = useMemo(() => {
@@ -26,23 +59,50 @@ export default function Home() {
   // Efecto para procesar la acción pendiente después de que la animación termine
   useEffect(() => {
     if (!showAnimation && pendingName && pendingDirection) {
-      // La animación ha terminado, ahora actualiza los estados reales
-      if (pendingDirection === 'right') {
-        setFavorites(prev => [...prev, pendingName as NombreArgentino]);
-      } else {
-        setRejected(prev => [...prev, pendingName.id]);
-      }
+      const processSwipe = async () => {
+        const liked = pendingDirection === 'right';
+        
+        if (user) {
+          try {
+            // Guardar preferencia en Supabase
+            await saveNamePreference(user, pendingName, liked);
+            
+            // Si fue un "like", comprobar matches
+            if (liked) {
+              const matches = await checkForMatches(user, pendingName.id);
+              if (matches && matches.length > 0) {
+                const matchNames = matches.map((m: any) => 
+                  m.profile?.full_name || m.profile?.email || 'otro usuario'
+                ).join(', ');
+                setMatchAlert(`¡Match! A ${matchNames} también le gustó ${pendingName.nombre}`);
+                setTimeout(() => setMatchAlert(null), 5000);
+              }
+            }
+          } catch (error) {
+            console.error('Error saving preference:', error);
+          }
+        }
+        
+        // La animación ha terminado, ahora actualiza los estados locales
+        if (liked) {
+          setFavorites(prev => [...prev, pendingName as NombreArgentino]);
+        } else {
+          setRejected(prev => [...prev, pendingName.id]);
+        }
 
-      // Avanzar al siguiente nombre
-      setCurrentIndex(prevIndex => 
-        prevIndex < remainingNames.length - 1 ? prevIndex + 1 : prevIndex
-      );
+        // Avanzar al siguiente nombre
+        setCurrentIndex(prevIndex => 
+          prevIndex < remainingNames.length - 1 ? prevIndex + 1 : prevIndex
+        );
 
-      // Limpiar el estado pendiente
-      setPendingName(null);
-      setPendingDirection(null);
+        // Limpiar el estado pendiente
+        setPendingName(null);
+        setPendingDirection(null);
+      };
+      
+      processSwipe();
     }
-  }, [showAnimation, pendingName, pendingDirection, remainingNames]);
+  }, [showAnimation, pendingName, pendingDirection, remainingNames, user]);
 
   // Manejar el deslizamiento de tarjetas
   const handleSwipe = (direction: string) => {
@@ -67,7 +127,17 @@ export default function Home() {
   };
 
   // Eliminar un nombre de favoritos
-  const handleRemoveFavorite = (id: number) => {
+  const handleRemoveFavorite = async (id: number) => {
+    if (user) {
+      try {
+        // Eliminar preferencia en Supabase
+        await removeNamePreference(user, id);
+      } catch (error) {
+        console.error('Error removing favorite:', error);
+      }
+    }
+    
+    // Actualizar estado local
     setFavorites(prev => prev.filter(name => name.id !== id));
   };
 
@@ -78,6 +148,7 @@ export default function Home() {
     setCurrentIndex(0);
     setPendingName(null);
     setPendingDirection(null);
+    // Nota: Esto no elimina los datos de Supabase, solo restablece la vista local
   };
 
   // Cambiar entre vista de tarjetas y favoritos
@@ -96,9 +167,34 @@ export default function Home() {
     };
   }, []);
 
+  if (loading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-gray-600">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="text-lg text-gray-800 mb-4">Inicia sesión para guardar tus nombres favoritos</div>
+        <Link href="/auth" className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition">
+          Iniciar Sesión
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {matchAlert && (
+          <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-md shadow-sm animate-pulse">
+            {matchAlert}
+          </div>
+        )}
+
         {!showFavorites ? (
           <div>
             <div className="flex flex-col items-center">
