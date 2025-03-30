@@ -34,6 +34,29 @@ export default function Header() {
                 Baby Tinder
               </span>
             </Link>
+            
+            {user && (
+              <div className="hidden md:flex ml-6 space-x-4">
+                <Link 
+                  href="/" 
+                  className="text-gray-700 hover:text-pink-500 px-3 py-2 text-sm font-medium"
+                >
+                  Explorar
+                </Link>
+                <Link 
+                  href="/partner" 
+                  className="text-gray-700 hover:text-pink-500 px-3 py-2 text-sm font-medium"
+                >
+                  Mi Pareja
+                </Link>
+                <Link 
+                  href="/matches" 
+                  className="text-gray-700 hover:text-pink-500 px-3 py-2 text-sm font-medium"
+                >
+                  Coincidencias
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-4">
@@ -75,6 +98,20 @@ export default function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Mi Perfil
+                      </Link>
+                      <Link
+                        href="/partner"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 md:hidden"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Mi Pareja
+                      </Link>
+                      <Link
+                        href="/matches"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 md:hidden"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Coincidencias
                       </Link>
                       <button
                         onClick={handleSignOut}

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { NombreArgentino } from '@/types/types';
 import { User } from '@supabase/supabase-js';
+import { getUserPartner } from './relationshipService';
 
 /**
  * Guarda la preferencia de un usuario sobre un nombre (like o dislike)
@@ -11,6 +12,35 @@ export async function saveNamePreference(
   liked: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Verificar que el nombre exista en la base de datos
+    const { data: nombreExistente, error: nombreError } = await supabase
+      .from('nombres')
+      .select('id')
+      .eq('id', nombre.id)
+      .single();
+    
+    if (nombreError) {
+      console.error('Error verificando existencia del nombre:', nombreError);
+      
+      // Si el nombre no existe en la base de datos, intentar insertarlo
+      if (nombreError.code === 'PGRST116') { // No data found
+        const { error: insertNombreError } = await supabase
+          .from('nombres')
+          .insert({
+            id: nombre.id,
+            nombre: nombre.nombre,
+            cantidad: nombre.cantidad,
+            anio: nombre.anio
+          });
+        
+        if (insertNombreError) {
+          throw new Error(`El nombre no existe en la base de datos y no se pudo crear: ${insertNombreError.message}`);
+        }
+      } else {
+        throw nombreError;
+      }
+    }
+    
     // Verificar si ya existe una preferencia para este usuario y nombre
     const { data: existingPreferences, error: queryError } = await supabase
       .from('user_preferences')
@@ -186,72 +216,129 @@ export async function checkForMatches(
   nombreId: number
 ): Promise<any[]> {
   try {
-    // 1. Buscar otros usuarios que también les guste este nombre
-    const { data: userPreferences, error: prefsError } = await supabase
+    // Primero, obtener información de la pareja del usuario
+    const { partner, error: partnerError } = await getUserPartner(user);
+    
+    if (partnerError) throw new Error(partnerError);
+    
+    // Si el usuario no tiene pareja, no buscar coincidencias
+    if (!partner) return [];
+    
+    // Verificar si a la pareja también le gusta este nombre
+    const { data: partnerPreferences, error: prefsError } = await supabase
       .from('user_preferences')
       .select('user_id')
+      .eq('user_id', partner.id)
       .eq('nombre_id', nombreId)
-      .eq('liked', true)
-      .neq('user_id', user.id);
+      .eq('liked', true);
     
     if (prefsError) throw prefsError;
-    if (!userPreferences || userPreferences.length === 0) return [];
     
-    // 2. Obtener datos de perfiles para estos usuarios
-    const matchUserIds = userPreferences.map(pref => pref.user_id);
-    
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, avatar_url')
-      .in('id', matchUserIds);
-    
-    if (profilesError) throw profilesError;
-    
-    // 3. Combinar datos de preferencias con perfiles
-    const matchesWithProfiles = userPreferences.map(pref => {
-      const profile = profiles?.find(p => p.id === pref.user_id);
-      return {
-        user_id: pref.user_id,
-        profile: profile || { full_name: null, email: null, avatar_url: null }
-      };
-    });
-    
-    // 4. Crear registros de match para cada pareja encontrada
-    if (matchesWithProfiles.length > 0) {
-      for (const match of matchesWithProfiles) {
-        // Determinar el orden de los IDs de usuario para mantener consistencia
-        const [user1Id, user2Id] = [user.id, match.user_id].sort();
-        
-        // Comprobar si ya existe este match
-        const { data: existingMatches, error: matchQueryError } = await supabase
-          .from('couple_matches')
-          .select('*')
-          .eq('user1_id', user1Id)
-          .eq('user2_id', user2Id)
-          .eq('nombre_id', nombreId);
-        
-        if (matchQueryError) throw matchQueryError;
-        
-        const existingMatch = existingMatches && existingMatches.length > 0 
-          ? existingMatches[0] 
-          : null;
-        
-        if (!existingMatch) {
-          // Crear nuevo match
-          await supabase
-            .from('couple_matches')
-            .insert({
-              user1_id: user1Id,
-              user2_id: user2Id,
-              nombre_id: nombreId
-            });
-        }
-      }
+    if (!partnerPreferences || partnerPreferences.length === 0) {
+      // No hay match con la pareja
+      return [];
     }
     
-    return matchesWithProfiles;
+    // Hay un match, registrarlo en la tabla de coincidencias
+    // Determinar el orden de los IDs de usuario para mantener consistencia
+    const [user1Id, user2Id] = [user.id, partner.id].sort();
+    
+    // Comprobar si ya existe este match
+    const { data: existingMatches, error: matchQueryError } = await supabase
+      .from('couple_matches')
+      .select('*')
+      .eq('user1_id', user1Id)
+      .eq('user2_id', user2Id)
+      .eq('nombre_id', nombreId);
+    
+    if (matchQueryError) throw matchQueryError;
+    
+    const existingMatch = existingMatches && existingMatches.length > 0 
+      ? existingMatches[0] 
+      : null;
+    
+    if (!existingMatch) {
+      // Crear nuevo match
+      await supabase
+        .from('couple_matches')
+        .insert({
+          user1_id: user1Id,
+          user2_id: user2Id,
+          nombre_id: nombreId
+        });
+    }
+    
+    // Retornar información de la pareja
+    return [{
+      user_id: partner.id,
+      profile: partner
+    }];
   } catch (error) {
     console.error('Error checking for matches:', error);
     return [];
+  }
+}
+
+/**
+ * Obtiene los nombres que han gustado a ambos miembros de la pareja
+ */
+export async function getMatchesWithPartner(user: User): Promise<{
+  matches: NombreArgentino[];
+  error?: string;
+}> {
+  try {
+    // 1. Obtener información de la pareja
+    const { partner, error: partnerError } = await getUserPartner(user);
+    
+    if (partnerError) throw new Error(partnerError);
+    
+    // Si el usuario no tiene pareja, retornar un array vacío
+    if (!partner) return { matches: [] };
+    
+    // 2. Obtener los IDs de nombres que le gustan al usuario actual
+    const { data: userLikes, error: userLikesError } = await supabase
+      .from('user_preferences')
+      .select('nombre_id')
+      .eq('user_id', user.id)
+      .eq('liked', true);
+    
+    if (userLikesError) throw userLikesError;
+    
+    // Si el usuario no tiene nombres que le gusten, retornar un array vacío
+    if (!userLikes || userLikes.length === 0) return { matches: [] };
+    
+    const userLikedIds = userLikes.map(like => like.nombre_id);
+    
+    // 3. Obtener los IDs de nombres que le gustan a la pareja
+    const { data: partnerLikes, error: partnerLikesError } = await supabase
+      .from('user_preferences')
+      .select('nombre_id')
+      .eq('user_id', partner.id)
+      .eq('liked', true);
+    
+    if (partnerLikesError) throw partnerLikesError;
+    
+    // Si la pareja no tiene nombres que le gusten, retornar un array vacío
+    if (!partnerLikes || partnerLikes.length === 0) return { matches: [] };
+    
+    const partnerLikedIds = partnerLikes.map(like => like.nombre_id);
+    
+    // 4. Encontrar las coincidencias (nombres que le gustan a ambos)
+    const matchedIds = userLikedIds.filter(id => partnerLikedIds.includes(id));
+    
+    if (matchedIds.length === 0) return { matches: [] };
+    
+    // 5. Obtener los detalles completos de los nombres que coinciden
+    const { data: matchedNames, error: matchedNamesError } = await supabase
+      .from('nombres')
+      .select('*')
+      .in('id', matchedIds);
+    
+    if (matchedNamesError) throw matchedNamesError;
+    
+    return { matches: matchedNames || [] };
+  } catch (error: any) {
+    console.error('Error getting matches with partner:', error);
+    return { matches: [], error: error.message };
   }
 } 

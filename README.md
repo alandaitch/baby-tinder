@@ -7,6 +7,7 @@ Una aplicación para elegir nombres de bebés inspirada en la mecánica de Tinde
 - **Interfaz tipo Tinder**: Desliza o haz clic en los botones para marcar nombres como favoritos o descartarlos.
 - **Autenticación de usuarios**: Inicia sesión para guardar tus preferencias de nombres.
 - **Persistencia de datos**: Todas tus preferencias se guardan en la base de datos.
+- **Conexión entre parejas**: Conecta con tu pareja mediante códigos de invitación para comparar preferencias.
 - **Coincidencias entre parejas**: Recibe notificaciones cuando tú y tu pareja coinciden en gustar el mismo nombre.
 - **Estadísticas de nombres**: Ve estadísticas sobre tus nombres favoritos.
 
@@ -23,6 +24,15 @@ Una aplicación para elegir nombres de bebés inspirada en la mecánica de Tinde
 - **user_preferences**: Guarda si a un usuario le gusta o no un nombre
 - **user_favorites**: Lista de nombres favoritos de cada usuario
 - **couple_matches**: Registra cuando dos usuarios coinciden en gustar un nombre
+- **invitation_codes**: Códigos para conectar parejas
+- **user_relationships**: Relaciones entre usuarios (parejas)
+
+## Cómo conectar con tu pareja
+
+1. En la sección "Mi Pareja", genera un código de invitación.
+2. Comparte este código con tu pareja.
+3. La otra persona introduce el código en su perfil.
+4. ¡Ya están conectados! Ahora podrán ver las coincidencias en sus preferencias de nombres.
 
 ## Instalación
 
@@ -41,9 +51,10 @@ Una aplicación para elegir nombres de bebés inspirada en la mecánica de Tinde
 ## Uso
 
 1. Inicia sesión con tu correo electrónico
-2. Explora los nombres deslizando a la derecha (me gusta) o a la izquierda (no me gusta)
-3. Revisa tu lista de nombres favoritos
-4. Si ambos miembros de la pareja utilizan la aplicación, recibirán notificaciones cuando coincidan en gustar un nombre
+2. Conecta con tu pareja usando el sistema de códigos
+3. Explora los nombres deslizando a la derecha (me gusta) o a la izquierda (no me gusta)
+4. Revisa tu lista de nombres favoritos
+5. Ve a la sección "Coincidencias" para ver qué nombres les gustaron a ambos
 
 ## Próximas características
 

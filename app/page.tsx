@@ -9,6 +9,8 @@ import { NombreArgentino } from '../types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveNamePreference, getLikedNames, getDislikedNames, removeNamePreference, checkForMatches } from '@/lib/nameService';
 import Link from 'next/link';
+import { getUserPartner } from '@/lib/relationshipService';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -67,15 +69,30 @@ export default function Home() {
             // Guardar preferencia en Supabase
             await saveNamePreference(user, pendingName, liked);
             
-            // Si fue un "like", comprobar matches
+            // Si fue un "like", comprobar si la pareja también le dio like a este nombre
             if (liked) {
-              const matches = await checkForMatches(user, pendingName.id);
-              if (matches && matches.length > 0) {
-                const matchNames = matches.map((m: any) => 
-                  m.profile?.full_name || m.profile?.email || 'otro usuario'
-                ).join(', ');
-                setMatchAlert(`¡Match! A ${matchNames} también le gustó ${pendingName.nombre}`);
-                setTimeout(() => setMatchAlert(null), 5000);
+              try {
+                // Obtener información de la pareja
+                const { partner } = await getUserPartner(user);
+                
+                if (partner) {
+                  // Verificar si a la pareja también le gusta este nombre
+                  const { data: partnerPreferences } = await supabase
+                    .from('user_preferences')
+                    .select('*')
+                    .eq('user_id', partner.id)
+                    .eq('nombre_id', pendingName.id)
+                    .eq('liked', true);
+                  
+                  if (partnerPreferences && partnerPreferences.length > 0) {
+                    // Hay un match - mostrar notificación
+                    const partnerName = partner.full_name || partner.email || 'tu pareja';
+                    setMatchAlert(`¡Match! A ${partnerName} también le gustó ${pendingName.nombre}`);
+                    setTimeout(() => setMatchAlert(null), 5000);
+                  }
+                }
+              } catch (error) {
+                console.error('Error checking for match:', error);
               }
             }
           } catch (error) {
