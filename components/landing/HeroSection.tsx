@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface HeroSectionProps {
   statsCount?: number; // Número de parejas que han encontrado nombres
@@ -21,6 +21,8 @@ export default function HeroSection({ statsCount = 1500, onCtaClick }: HeroSecti
   const { user } = useAuth();
   const [animationFrame, setAnimationFrame] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [direction, setDirection] = useState<'left' | 'right' | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   
   // Nombres de ejemplo para la animación con datos mejorados
   const exampleNames: ExampleName[] = [
@@ -62,19 +64,55 @@ export default function HeroSection({ statsCount = 1500, onCtaClick }: HeroSecti
     }
   ];
   
+  // Función para manejar la animación hacia la izquierda (rechazo)
+  const handleReject = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setDirection('left');
+    setTimeout(() => {
+      setAnimationFrame((prev) => (prev + 1) % exampleNames.length);
+      setDirection(null);
+      setIsAnimating(false);
+    }, 500);
+  };
+
+  // Función para manejar la animación hacia la derecha (aceptación)
+  const handleAccept = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setDirection('right');
+    setTimeout(() => {
+      setAnimationFrame((prev) => (prev + 1) % exampleNames.length);
+      setDirection(null);
+      setIsAnimating(false);
+    }, 500);
+  };
+  
   // Asegurarnos de que el componente está montado para evitar problemas de hidratación
   useEffect(() => {
     setMounted(true);
   }, []);
   
-  // Efecto para la animación de cartas
+  // Efecto para la animación automática de cartas cada 3 segundos
+  // Solo funciona cuando no hay una animación en curso
   useEffect(() => {
+    if (isAnimating) return;
+    
     const interval = setInterval(() => {
-      setAnimationFrame((prev) => (prev + 1) % exampleNames.length);
-    }, 3000); // Aumentado a 3s para dar más tiempo para leer
+      // Alternar dirección en la animación automática (una vez a la izquierda, otra a la derecha)
+      const autoDirection = animationFrame % 2 === 0 ? 'right' : 'left';
+      setDirection(autoDirection);
+      setIsAnimating(true);
+      
+      setTimeout(() => {
+        setAnimationFrame((prev) => (prev + 1) % exampleNames.length);
+        setDirection(null);
+        setIsAnimating(false);
+      }, 500);
+    }, 5000); // Aumentado a 5s para que haya tiempo suficiente entre animaciones
     
     return () => clearInterval(interval);
-  }, [exampleNames.length]);
+  }, [animationFrame, exampleNames.length, isAnimating]);
 
   return (
     <section className="relative overflow-hidden py-12 sm:py-16 md:py-20 lg:py-32 bg-gradient-to-br from-white to-pink-50">
@@ -124,84 +162,157 @@ export default function HeroSection({ statsCount = 1500, onCtaClick }: HeroSecti
           
           {/* Sección de tarjetas de nombres */}
           <div className="relative h-[400px] sm:h-[450px] mb-8 md:mb-0 order-1 md:order-2">
+            {/* Capa para indicadores visuales de swipe */}
+            <div className="absolute inset-0 pointer-events-none z-10 flex">
+              {/* Indicador de rechazo (izquierda) */}
+              <div className={`w-1/2 flex items-center justify-center transition-opacity duration-300 ${direction === 'left' ? 'opacity-70' : 'opacity-0'}`}>
+                <div className="bg-red-100 rounded-full p-3 shadow-md transform scale-150">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Indicador de aceptación (derecha) */}
+              <div className={`w-1/2 flex items-center justify-center transition-opacity duration-300 ${direction === 'right' ? 'opacity-70' : 'opacity-0'}`}>
+                <div className="bg-green-100 rounded-full p-3 shadow-md transform scale-150">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
             {/* Animación de tarjetas */}
             <div className="absolute inset-0 flex items-center justify-center">
-              {exampleNames.map((nameData, index) => {
-                const isActive = index === animationFrame;
-                const offset = (index - animationFrame + exampleNames.length) % exampleNames.length;
-                const zIndex = exampleNames.length - offset;
-                
-                // Colores específicos de género
-                const gradientColors = nameData.gender === 'female' 
-                  ? 'from-pink-200 to-purple-100' 
-                  : 'from-blue-200 to-cyan-100';
-                
-                return (
-                  <motion.div
-                    key={nameData.name}
-                    className={`absolute w-[250px] h-[370px] sm:w-[280px] sm:h-[400px] md:w-[260px] md:h-[380px] lg:w-[280px] lg:h-[400px] rounded-xl sm:rounded-2xl shadow-xl overflow-hidden bg-white transition-all duration-500 ${
-                      isActive ? 'opacity-100 scale-100' : 'opacity-70 scale-95'
-                    }`}
-                    style={{
-                      zIndex,
-                      transform: `translateY(${offset * 4}px) scale(${1 - offset * 0.05}) rotate(${offset * -2}deg)`,
-                      boxShadow: isActive ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : ''
-                    }}
-                  >
-                    {/* Encabezado de la tarjeta */}
-                    <div className={`w-full h-32 sm:h-36 md:h-32 lg:h-36 bg-gradient-to-br ${gradientColors} p-4 sm:p-5 relative`}>
-                      {/* Patrón decorativo */}
-                      <div className="absolute inset-0 opacity-20">
-                        {[...Array(5)].map((_, i) => (
-                          <div 
-                            key={i}
-                            className="absolute w-16 h-16 sm:w-20 sm:h-20 border-2 border-white rounded-full"
-                            style={{ 
-                              top: `${Math.random() * 100}%`, 
-                              left: `${Math.random() * 100}%`,
-                              transform: `scale(${Math.random() * 0.5 + 0.5})` 
-                            }}
-                          ></div>
-                        ))}
-                      </div>
-                      
-                      <div className="relative z-10">
-                        <div className="text-xs font-medium uppercase text-gray-600 tracking-wider mb-1">
-                          {nameData.origin}
+              <AnimatePresence>
+                {exampleNames.map((nameData, index) => {
+                  // Solo mostramos la tarjeta activa y algunas detrás
+                  if ((index - animationFrame + exampleNames.length) % exampleNames.length > 3) {
+                    return null;
+                  }
+                  
+                  const isActive = index === animationFrame;
+                  const offset = (index - animationFrame + exampleNames.length) % exampleNames.length;
+                  const zIndex = exampleNames.length - offset;
+                  
+                  // Colores específicos de género
+                  const gradientColors = nameData.gender === 'female' 
+                    ? 'from-pink-200 to-purple-100' 
+                    : 'from-blue-200 to-cyan-100';
+                  
+                  // Definir variantes de animación para swipe
+                  const variants = {
+                    center: { 
+                      x: 0, 
+                      rotate: 0,
+                      scale: 1,
+                      opacity: 1 
+                    },
+                    left: { 
+                      x: '-150%', 
+                      rotate: -30,
+                      opacity: 0,
+                      transition: { duration: 0.5 }
+                    },
+                    right: { 
+                      x: '150%', 
+                      rotate: 30,
+                      opacity: 0,
+                      transition: { duration: 0.5 }
+                    },
+                    behind: {
+                      scale: 1 - offset * 0.05,
+                      y: offset * 4,
+                      rotate: offset * -1,
+                      opacity: 1 - offset * 0.2,
+                      transition: { duration: 0.3 }
+                    }
+                  };
+                  
+                  return (
+                    <motion.div
+                      key={nameData.name}
+                      className={`absolute w-[250px] h-[370px] sm:w-[280px] sm:h-[400px] md:w-[260px] md:h-[380px] lg:w-[280px] lg:h-[400px] rounded-xl sm:rounded-2xl shadow-xl overflow-hidden bg-white`}
+                      initial={isActive ? 'center' : 'behind'}
+                      animate={
+                        isActive 
+                          ? direction 
+                            ? direction 
+                            : 'center' 
+                          : 'behind'
+                      }
+                      variants={variants}
+                      style={{ 
+                        zIndex,
+                        boxShadow: isActive ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : ''
+                      }}
+                    >
+                      {/* Encabezado de la tarjeta */}
+                      <div className={`w-full h-32 sm:h-36 md:h-32 lg:h-36 bg-gradient-to-br ${gradientColors} p-4 sm:p-5 relative`}>
+                        {/* Patrón decorativo */}
+                        <div className="absolute inset-0 opacity-20">
+                          {[...Array(5)].map((_, i) => (
+                            <div 
+                              key={i}
+                              className="absolute w-16 h-16 sm:w-20 sm:h-20 border-2 border-white rounded-full"
+                              style={{ 
+                                top: `${Math.random() * 100}%`, 
+                                left: `${Math.random() * 100}%`,
+                                transform: `scale(${Math.random() * 0.5 + 0.5})` 
+                              }}
+                            ></div>
+                          ))}
                         </div>
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
-                          {nameData.name}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Cuerpo de la tarjeta */}
-                    <div className="p-4 sm:p-5 flex flex-col h-[calc(100%-8rem)] sm:h-[calc(100%-9rem)] md:h-[calc(100%-8rem)] lg:h-[calc(100%-9rem)]">
-                      <div className="mb-6">
-                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Significado</div>
-                        <div className="text-sm text-gray-700">{nameData.meaning}</div>
-                      </div>
-                      
-                      <div className="text-center mt-auto mb-3">
-                        <p className="text-sm text-gray-500 mb-4">¿Te gusta este nombre?</p>
                         
-                        <div className="flex justify-center gap-6 sm:gap-8">
-                          <button className="p-3 rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                          <button className="p-3 rounded-full bg-green-100 text-green-500 hover:bg-green-200 transition-colors shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </button>
+                        <div className="relative z-10">
+                          <div className="text-xs font-medium uppercase text-gray-600 tracking-wider mb-1">
+                            {nameData.origin}
+                          </div>
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
+                            {nameData.name}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                      
+                      {/* Cuerpo de la tarjeta */}
+                      <div className="p-4 sm:p-5 flex flex-col h-[calc(100%-8rem)] sm:h-[calc(100%-9rem)] md:h-[calc(100%-8rem)] lg:h-[calc(100%-9rem)]">
+                        <div className="mb-6">
+                          <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Significado</div>
+                          <div className="text-sm text-gray-700">{nameData.meaning}</div>
+                        </div>
+                        
+                        {isActive && (
+                          <div className="text-center mt-auto mb-3">
+                            <p className="text-sm text-gray-500 mb-4">¿Te gusta este nombre?</p>
+                            
+                            <div className="flex justify-center gap-6 sm:gap-8">
+                              <button 
+                                className="p-3 rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition-colors shadow-sm transform hover:scale-110"
+                                onClick={handleReject}
+                                disabled={isAnimating}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <button 
+                                className="p-3 rounded-full bg-green-100 text-green-500 hover:bg-green-200 transition-colors shadow-sm transform hover:scale-110"
+                                onClick={handleAccept}
+                                disabled={isAnimating}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
         </div>
