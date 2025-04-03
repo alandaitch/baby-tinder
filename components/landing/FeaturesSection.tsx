@@ -37,8 +37,13 @@ export default function FeaturesSection() {
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">¿Cómo funciona Baby Swiper?</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <div className="inline-flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-pink-500 mr-2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+            </svg>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">¿Cómo funciona Baby Swiper?</h2>
+          </div>
+          <p className="text-xl text-gray-800 max-w-3xl mx-auto">
             Una forma divertida y práctica de encontrar el nombre perfecto para tu bebé
           </p>
         </div>
