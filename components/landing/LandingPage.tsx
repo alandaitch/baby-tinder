@@ -1,7 +1,6 @@
 'use client';
 
 import HeroSection from './HeroSection';
-import FeaturesSection from './FeaturesSection';
 import TestimonialsSection from './TestimonialsSection';
 import HowItWorksSection from './HowItWorksSection';
 import StatsSection from './StatsSection';
@@ -11,7 +10,6 @@ export default function LandingPage() {
   return (
     <div className="landing-page">
       <HeroSection />
-      <FeaturesSection />
       <HowItWorksSection />
       <TestimonialsSection />
       <StatsSection />
