@@ -1,4 +1,4 @@
-# Baby Tinder
+# Baby Swiper
 
 Una aplicación para elegir nombres de bebés inspirada en la mecánica de Tinder. Desliza a la derecha para guardar un nombre que te gusta, o a la izquierda para descartarlo.
 
@@ -16,6 +16,7 @@ Una aplicación para elegir nombres de bebés inspirada en la mecánica de Tinde
 - **Frontend**: Next.js, React, TailwindCSS
 - **Backend**: Supabase para autenticación y base de datos
 - **Animaciones**: React Spring para deslizamientos suaves
+- **Favicon**: Personalizado para la marca Baby Swiper
 
 ## Estructura de la base de datos
 

@@ -1,4 +1,4 @@
-// Definición de tipos para la aplicación Baby Tinder
+// Definición de tipos para la aplicación Baby Swiper
 
 export interface NombreArgentino {
   id: number;
